@@ -52,22 +52,35 @@ function buildWalls() {
 }
 
 function buildBumpers() {
+    // 3 paraurti tondi decorativi, colori coordinati col resto del tavolo
     return [
-        { x: 315.9, y: 230, r: 16, lastHit: -9999 },
-        { x: 595.35, y: 190, r: 16, lastHit: -9999 },
-        { x: 729, y: 260, r: 16, lastHit: -9999 }
+        { x: 486, y: 260, r: 22, color: '#00f5d4', lastHit: -9999 },
+        { x: 320, y: 350, r: 20, color: '#ff2f7e', lastHit: -9999 },
+        { x: 652, y: 350, r: 20, color: '#00ff6a', lastHit: -9999 }
     ];
 }
 
 function buildPegs() {
+    // piccoli intoppi decorativi a diamante, sotto i paraurti
     return [
-        { x: 230.85, y: 260, r: 5 },
-        { x: 388.8, y: 300, r: 5 },
-        { x: 534.6, y: 260, r: 5 },
-        { x: 680.4, y: 320, r: 5 },
-        { x: 364.5, y: 220, r: 5 },
-        { x: 486, y: 350, r: 5 }
+        { x: 486, y: 400, r: 5 },
+        { x: 410, y: 445, r: 5 },
+        { x: 562, y: 445, r: 5 },
+        { x: 486, y: 490, r: 5 },
+        { x: 486, y: 330, r: 4 }
     ];
+}
+
+function buildDomeLights() {
+    // lucine decorative lungo la cupola (puro effetto, nessuna fisica)
+    const cx = 486, cy = 150, rx = 437.4, ry = 130;
+    const lights = [];
+    const N = 20;
+    for (let i = 1; i < N; i++) {
+        const a = Math.PI - (Math.PI * i / N);
+        lights.push({ x: cx + rx * Math.cos(a), y: cy - ry * Math.sin(a), colorIdx: i % 3 });
+    }
+    return lights;
 }
 
 function buildPaddles() {
@@ -174,6 +187,7 @@ const ballsEl = document.getElementById('balls');
 const walls = buildWalls();
 const bumpers = buildBumpers();
 const pegs = buildPegs();
+const domeLights = buildDomeLights();
 const paddles = buildPaddles();
 
 let ball, score, ballsLeft, gameState, charge, chargeStartTime, spaceDown, restFrames;
@@ -256,7 +270,7 @@ function physicsFrame() {
         for (let s = 0; s < SUBSTEPS; s++) {
             ball.x += stepVx; ball.y += stepVy;
             walls.forEach(w => resolveWallCollision(ball, w, now));
-            bumpers.forEach(b => { if (resolveCircleCollision(ball, b, true, now)) addScore(100); });
+            bumpers.forEach(b => { if (resolveCircleCollision(ball, b, true, now)) addScore(150); });
             pegs.forEach(p => resolveCircleCollision(ball, p, false, now));
             paddles.forEach(p => resolvePaddleCollision(ball, p));
         }
@@ -315,12 +329,56 @@ function drawWalls(now) {
     });
 }
 
+function drawDomeLights(now) {
+    const colors = ['#00f5d4', '#ff2f7e', '#00ff6a'];
+    domeLights.forEach((l, i) => {
+        const pulse = (Math.sin(now / 400 + i * 0.6) + 1) / 2; // 0..1
+        const color = colors[l.colorIdx];
+        ctx.beginPath();
+        ctx.arc(l.x, l.y, 2.5 + pulse * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.4 + pulse * 0.6;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+    });
+}
+
+function drawBackgroundEmblem() {
+    ctx.save();
+    ctx.globalAlpha = 0.05;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 46px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('★ NEON PINBALL ★', TABLE_W / 2, 560);
+    ctx.restore();
+}
+
+function drawWallGlow() {
+    const gradL = ctx.createLinearGradient(48.6, 0, 108.6, 0);
+    gradL.addColorStop(0, 'rgba(0,245,212,0.10)');
+    gradL.addColorStop(1, 'rgba(0,245,212,0)');
+    ctx.fillStyle = gradL;
+    ctx.fillRect(48.6, 150, 60, 480);
+
+    const gradR = ctx.createLinearGradient(923.4, 0, 863.4, 0);
+    gradR.addColorStop(0, 'rgba(255,47,126,0.10)');
+    gradR.addColorStop(1, 'rgba(255,47,126,0)');
+    ctx.fillStyle = gradR;
+    ctx.fillRect(863.4, 150, 60, 480);
+}
+
 function drawPegs() {
     pegs.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = '#8a8aa0';
+        ctx.fillStyle = '#5a6a8f';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#5a6a8f';
         ctx.fill();
+        ctx.shadowBlur = 0;
     });
 }
 
@@ -329,9 +387,9 @@ function drawBumpers(now) {
         const hitRecently = now - b.lastHit < 150;
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fillStyle = hitRecently ? '#ffffff' : '#ffcc00';
-        ctx.shadowBlur = hitRecently ? 25 : 12;
-        ctx.shadowColor = '#ffcc00';
+        ctx.fillStyle = hitRecently ? '#ffffff' : b.color;
+        ctx.shadowBlur = hitRecently ? 26 : 14;
+        ctx.shadowColor = b.color;
         ctx.fill();
         ctx.shadowBlur = 0;
         ctx.beginPath();
@@ -406,7 +464,10 @@ function drawChargeMeter() {
 function render(now) {
     ctx.fillStyle = '#0a0817';
     ctx.fillRect(0, 0, TABLE_W, TABLE_H);
+    drawWallGlow();
+    drawBackgroundEmblem();
     drawWalls(now);
+    drawDomeLights(now);
     drawPegs();
     drawBumpers(now);
     drawPaddles();
