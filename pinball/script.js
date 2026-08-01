@@ -357,6 +357,29 @@ function drawPaddles() {
     });
 }
 
+function drawTethers() {
+    // piccoli tiranti sottili grigi, a molla, dal perno del paddle fino al pavimento sottostante
+    paddles.forEach(p => {
+        const x = p.pivotX, yTop = p.pivotY, yBottom = 650;
+        const segments = 5;
+        const amp = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x, yTop);
+        for (let i = 1; i < segments; i++) {
+            const t = i / segments;
+            const y = yTop + (yBottom - yTop) * t;
+            const dx = (i % 2 === 0) ? amp : -amp;
+            ctx.lineTo(x + dx, y);
+        }
+        ctx.lineTo(x, yBottom);
+        ctx.strokeStyle = '#8a8a9a';
+        ctx.lineWidth = 1.3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+    });
+}
+
 function drawBall() {
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
@@ -387,6 +410,7 @@ function render(now) {
     drawPegs();
     drawBumpers(now);
     drawPaddles();
+    drawTethers();
     drawChargeMeter();
     drawBall();
 }
