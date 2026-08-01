@@ -1,0 +1,106 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: #06040f;
+    background-image:
+        radial-gradient(circle at 20% 15%, rgba(0,245,212,0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(255,0,127,0.08) 0%, transparent 40%);
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+}
+
+.app { text-align: center; }
+
+h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+    color: #fff;
+}
+h1 .glow {
+    background: linear-gradient(135deg, #00f5d4, #ff00c8);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(0,245,212,0.3);
+}
+
+.hud {
+    display: flex;
+    justify-content: space-between;
+    max-width: 972px;
+    margin: 0 auto 10px;
+    padding: 0 6px;
+}
+
+.hud-item {
+    font-size: 0.68rem;
+    letter-spacing: 1px;
+    color: #9a8cc9;
+    font-weight: 700;
+}
+.hud-item span {
+    display: block;
+    font-size: 1.2rem;
+    color: #00f5d4;
+    margin-top: 2px;
+    text-shadow: 0 0 8px rgba(0,245,212,0.4);
+}
+
+.stage {
+    position: relative;
+    display: inline-block;
+}
+
+canvas {
+    background: #0a0817;
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    display: block;
+    box-shadow: 0 0 40px rgba(0,245,212,0.08);
+}
+
+.hint {
+    margin-top: 12px;
+    font-size: 0.75rem;
+    color: #7a6ea8;
+}
+.hint kbd {
+    background: rgba(255,255,255,0.08);
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 0.7rem;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(4,2,10,0.92);
+    border-radius: 10px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    padding: 20px;
+}
+.overlay h2 { font-size: 1.6rem; color: #00f5d4; }
+.overlay p { color: #b8a8e0; font-size: 0.85rem; max-width: 280px; }
+.overlay button {
+    background: linear-gradient(135deg,#00f5d4,#00a8ff);
+    border: none;
+    color: #04101a;
+    font-weight: 800;
+    padding: 11px 26px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.88rem;
+}
+.overlay button:hover { transform: translateY(-2px); }

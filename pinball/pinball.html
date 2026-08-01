@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Pinball</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.hub-back-btn{position:fixed;top:14px;left:14px;z-index:999999;display:flex;align-items:center;gap:6px;background:rgba(10,10,14,0.75);backdrop-filter:blur(6px);color:#fff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:0.3px;padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 4px 14px rgba(0,0,0,0.35);transition:all .18s ease;}
+.hub-back-btn:hover{background:rgba(255,71,87,0.85);border-color:rgba(255,71,87,0.6);transform:translateY(-2px);}
+</style>
+</head>
+<body>
+
+<a href="../../launcher.html" class="hub-back-btn" title="Torna alla Home">🏠 Home</a>
+
+<div class="app">
+    <h1>🕹️ Neon <span class="glow">Pinball</span></h1>
+
+    <div class="hud">
+        <div class="hud-item">PUNTEGGIO<br><span id="score">0</span></div>
+        <div class="hud-item">PALLINE<br><span id="balls">🔴🔴🔴</span></div>
+    </div>
+
+    <div class="stage">
+        <canvas id="table" width="972" height="700"></canvas>
+        <div id="overlay" class="overlay"></div>
+    </div>
+
+    <p class="hint">Tieni premuto <kbd>SPAZIO</kbd> per caricare il lancio, rilascia per sparare</p>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
