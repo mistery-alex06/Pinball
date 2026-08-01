@@ -70,6 +70,23 @@ function buildPegs() {
     ];
 }
 
+function buildPaddles() {
+    // 2 piccoli paddle per buco, leggermente inclinati e sollevati.
+    // i paddle di sinistra rispondono a ⬅️, quelli di destra a ➡️ (stesso comando su tutti e 3 i buchi)
+    const specs = [
+        { holeX: 267.3 }, { holeX: 486 }, { holeX: 704.7 }
+    ];
+    const half = 50, length = 42, radius = 3, pivotY = 630;
+    const paddles = [];
+    specs.forEach(({ holeX }) => {
+        paddles.push({ side: 'left', pivotX: holeX - half, pivotY, length, radius,
+            restAngle: 80 * Math.PI / 180, activeAngle: 15 * Math.PI / 180, angle: 80 * Math.PI / 180, angularVel: 0, maxAngularSpeed: 18 * Math.PI / 180, active: false });
+        paddles.push({ side: 'right', pivotX: holeX + half, pivotY, length, radius,
+            restAngle: 100 * Math.PI / 180, activeAngle: 165 * Math.PI / 180, angle: 100 * Math.PI / 180, angularVel: 0, maxAngularSpeed: 18 * Math.PI / 180, active: false });
+    });
+    return paddles;
+}
+
 function closestPointOnSegment(px, py, x1, y1, x2, y2) {
     const dx = x2 - x1, dy = y2 - y1;
     const lenSq = dx * dx + dy * dy;
@@ -118,6 +135,34 @@ function resolveCircleCollision(ball, c, boost, now) {
     return false;
 }
 
+function paddleTip(p) {
+    return { x: p.pivotX + Math.cos(p.angle) * p.length, y: p.pivotY + Math.sin(p.angle) * p.length };
+}
+
+function resolvePaddleCollision(ball, p) {
+    const tip = paddleTip(p);
+    const cp = closestPointOnSegment(ball.x, ball.y, p.pivotX, p.pivotY, tip.x, tip.y);
+    const dx = ball.x - cp.x, dy = ball.y - cp.y;
+    const dist = Math.hypot(dx, dy);
+    const minDist = BALL_R + p.radius;
+    if (dist < minDist && dist > 0.0001) {
+        const nx = dx / dist, ny = dy / dist;
+        ball.x = cp.x + nx * minDist; ball.y = cp.y + ny * minDist;
+        const vDotN = ball.vx * nx + ball.vy * ny;
+        if (vDotN < 0) { ball.vx -= 1.7 * vDotN * nx; ball.vy -= 1.7 * vDotN * ny; }
+        return true;
+    }
+    return false;
+}
+
+function updatePaddle(p) {
+    const target = p.active ? p.activeAngle : p.restAngle;
+    const diff = target - p.angle;
+    const step = Math.sign(diff) * Math.min(Math.abs(diff), p.maxAngularSpeed);
+    p.angularVel = step;
+    p.angle += step;
+}
+
 /* ===================== STATO GIOCO ===================== */
 
 const canvas = document.getElementById('table');
@@ -129,6 +174,7 @@ const ballsEl = document.getElementById('balls');
 const walls = buildWalls();
 const bumpers = buildBumpers();
 const pegs = buildPegs();
+const paddles = buildPaddles();
 
 let ball, score, ballsLeft, gameState, charge, chargeStartTime, spaceDown, restFrames;
 
@@ -158,10 +204,17 @@ function addScore(points) { score += points; updateHud(); }
 
 /* ===================== INPUT ===================== */
 
+let leftDown = false, rightDown = false;
+
 document.addEventListener('keydown', e => {
     if (e.key === ' ') {
         e.preventDefault();
         if (!spaceDown && gameState === 'idle-spring') { spaceDown = true; chargeStartTime = performance.now(); }
+    }
+    if (e.key === 'ArrowLeft') { leftDown = true; e.preventDefault(); }
+    if (e.key === 'ArrowRight') { rightDown = true; e.preventDefault(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        paddles.forEach(p => { p.active = (p.side === 'left') ? leftDown : rightDown; });
     }
 });
 document.addEventListener('keyup', e => {
@@ -170,6 +223,11 @@ document.addEventListener('keyup', e => {
             spaceDown = false;
             if (gameState === 'idle-spring') launchBall();
         }
+    }
+    if (e.key === 'ArrowLeft') leftDown = false;
+    if (e.key === 'ArrowRight') rightDown = false;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        paddles.forEach(p => { p.active = (p.side === 'left') ? leftDown : rightDown; });
     }
 });
 
@@ -186,6 +244,7 @@ function launchBall() {
 
 function physicsFrame() {
     const now = performance.now();
+    paddles.forEach(updatePaddle);
 
     if (gameState === 'in-play') {
         ball.vy += GRAVITY;
@@ -199,6 +258,7 @@ function physicsFrame() {
             walls.forEach(w => resolveWallCollision(ball, w, now));
             bumpers.forEach(b => { if (resolveCircleCollision(ball, b, true, now)) addScore(100); });
             pegs.forEach(p => resolveCircleCollision(ball, p, false, now));
+            paddles.forEach(p => resolvePaddleCollision(ball, p));
         }
 
         // il pavimento chiude quasi tutto: se cade in uno dei 3 buchi, il turno finisce subito.
@@ -281,6 +341,22 @@ function drawBumpers(now) {
     });
 }
 
+function drawPaddles() {
+    paddles.forEach(p => {
+        const tip = paddleTip(p);
+        ctx.beginPath();
+        ctx.moveTo(p.pivotX, p.pivotY);
+        ctx.lineTo(tip.x, tip.y);
+        ctx.strokeStyle = '#ff2f7e';
+        ctx.lineWidth = p.radius * 2;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#ff2f7e';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    });
+}
+
 function drawBall() {
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
@@ -310,6 +386,7 @@ function render(now) {
     drawWalls(now);
     drawPegs();
     drawBumpers(now);
+    drawPaddles();
     drawChargeMeter();
     drawBall();
 }
