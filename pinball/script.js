@@ -52,23 +52,42 @@ function buildWalls() {
 }
 
 function buildBumpers() {
-    // 3 paraurti tondi decorativi, colori coordinati col resto del tavolo
+    // paraurti tondi, non tutti uguali: 3 principali coordinati + 2 piccoli fuori schema
     return [
         { x: 486, y: 260, r: 22, color: '#00f5d4', lastHit: -9999 },
         { x: 320, y: 350, r: 20, color: '#ff2f7e', lastHit: -9999 },
-        { x: 652, y: 350, r: 20, color: '#00ff6a', lastHit: -9999 }
+        { x: 652, y: 350, r: 20, color: '#00ff6a', lastHit: -9999 },
+        { x: 190, y: 470, r: 13, color: '#ffb703', lastHit: -9999 },
+        { x: 790, y: 440, r: 15, color: '#a855f7', lastHit: -9999 }
     ];
 }
 
 function buildPegs() {
-    // piccoli intoppi decorativi a diamante, sotto i paraurti
+    // intoppi sparsi, volutamente scoordinati e di dimensioni diverse
     return [
-        { x: 486, y: 400, r: 5 },
-        { x: 410, y: 445, r: 5 },
-        { x: 562, y: 445, r: 5 },
-        { x: 486, y: 490, r: 5 },
-        { x: 486, y: 330, r: 4 }
+        { x: 486, y: 400, r: 5, color: '#5a6a8f' },
+        { x: 410, y: 445, r: 5, color: '#5a6a8f' },
+        { x: 562, y: 445, r: 5, color: '#5a6a8f' },
+        { x: 486, y: 490, r: 5, color: '#5a6a8f' },
+        { x: 486, y: 330, r: 4, color: '#5a6a8f' },
+        { x: 140, y: 400, r: 4, color: '#6b5aa0' },
+        { x: 850, y: 300, r: 6, color: '#a05a6b' },
+        { x: 240, y: 550, r: 4, color: '#5a6a8f' },
+        { x: 640, y: 500, r: 5, color: '#6b5aa0' }
     ];
+}
+
+function buildKickers() {
+    // piccoli respingenti ad alto rimbalzo, posizionati in modo asimmetrico
+    return [
+        { x1: 130, y1: 250, x2: 165, y2: 300, restitution: 1.35 },
+        { x1: 840, y1: 470, x2: 875, y2: 420, restitution: 1.35 }
+    ];
+}
+
+function buildSpinner() {
+    // mulinello che gira in continuazione, non controllato dal giocatore
+    return { pivotX: 700, pivotY: 220, armLength: 42, radius: 4, angle: 0, spinSpeed: 0.09 };
 }
 
 function buildDomeLights() {
@@ -98,6 +117,11 @@ function buildPaddles() {
             restAngle: 100 * Math.PI / 180, activeAngle: 165 * Math.PI / 180, angle: 100 * Math.PI / 180, angularVel: 0, maxAngularSpeed: 18 * Math.PI / 180, active: false });
     });
     return paddles;
+}
+
+function buildTethers(paddles) {
+    // rende tangibili i tiranti: un muro sottile ma solido da ogni perno fino al pavimento
+    return paddles.map(p => ({ x1: p.pivotX, y1: p.pivotY, x2: p.pivotX, y2: 650, restitution: 0.8 }));
 }
 
 function closestPointOnSegment(px, py, x1, y1, x2, y2) {
@@ -168,6 +192,36 @@ function resolvePaddleCollision(ball, p) {
     return false;
 }
 
+function spinnerTips(s) {
+    return [
+        { x: s.pivotX + Math.cos(s.angle) * s.armLength, y: s.pivotY + Math.sin(s.angle) * s.armLength },
+        { x: s.pivotX - Math.cos(s.angle) * s.armLength, y: s.pivotY - Math.sin(s.angle) * s.armLength }
+    ];
+}
+
+function resolveSpinnerCollision(ball, s) {
+    const [tip1, tip2] = spinnerTips(s);
+    let hit = false;
+    [[s.pivotX, s.pivotY, tip1.x, tip1.y], [s.pivotX, s.pivotY, tip2.x, tip2.y]].forEach(([x1, y1, x2, y2]) => {
+        const cp = closestPointOnSegment(ball.x, ball.y, x1, y1, x2, y2);
+        const dx = ball.x - cp.x, dy = ball.y - cp.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = BALL_R + s.radius;
+        if (dist < minDist && dist > 0.0001) {
+            const nx = dx / dist, ny = dy / dist;
+            ball.x = cp.x + nx * minDist; ball.y = cp.y + ny * minDist;
+            const distFromPivot = Math.hypot(cp.x - s.pivotX, cp.y - s.pivotY);
+            const tangentialSpeed = s.spinSpeed * distFromPivot;
+            const tx = -Math.sin(s.angle), ty = Math.cos(s.angle);
+            const vDotN = ball.vx * nx + ball.vy * ny;
+            if (vDotN < 0) { ball.vx -= 1.5 * vDotN * nx; ball.vy -= 1.5 * vDotN * ny; }
+            ball.vx += tx * tangentialSpeed * 1.2; ball.vy += ty * tangentialSpeed * 1.2;
+            hit = true;
+        }
+    });
+    return hit;
+}
+
 function updatePaddle(p) {
     const target = p.active ? p.activeAngle : p.restAngle;
     const diff = target - p.angle;
@@ -187,8 +241,11 @@ const ballsEl = document.getElementById('balls');
 const walls = buildWalls();
 const bumpers = buildBumpers();
 const pegs = buildPegs();
+const kickers = buildKickers();
+const spinner = buildSpinner();
 const domeLights = buildDomeLights();
 const paddles = buildPaddles();
+const tethers = buildTethers(paddles);
 
 let ball, score, ballsLeft, gameState, charge, chargeStartTime, spaceDown, restFrames;
 
@@ -259,6 +316,7 @@ function launchBall() {
 function physicsFrame() {
     const now = performance.now();
     paddles.forEach(updatePaddle);
+    spinner.angle += spinner.spinSpeed;
 
     if (gameState === 'in-play') {
         ball.vy += GRAVITY;
@@ -270,9 +328,12 @@ function physicsFrame() {
         for (let s = 0; s < SUBSTEPS; s++) {
             ball.x += stepVx; ball.y += stepVy;
             walls.forEach(w => resolveWallCollision(ball, w, now));
+            tethers.forEach(t => resolveWallCollision(ball, t, now));
+            kickers.forEach(k => resolveWallCollision(ball, k, now));
             bumpers.forEach(b => { if (resolveCircleCollision(ball, b, true, now)) addScore(150); });
             pegs.forEach(p => resolveCircleCollision(ball, p, false, now));
             paddles.forEach(p => resolvePaddleCollision(ball, p));
+            resolveSpinnerCollision(ball, spinner);
         }
 
         // il pavimento chiude quasi tutto: se cade in uno dei 3 buchi, il turno finisce subito.
@@ -374,12 +435,45 @@ function drawPegs() {
     pegs.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = '#5a6a8f';
+        ctx.fillStyle = p.color || '#5a6a8f';
         ctx.shadowBlur = 5;
-        ctx.shadowColor = '#5a6a8f';
+        ctx.shadowColor = p.color || '#5a6a8f';
         ctx.fill();
         ctx.shadowBlur = 0;
     });
+}
+
+function drawKickers() {
+    kickers.forEach(k => {
+        ctx.beginPath();
+        ctx.moveTo(k.x1, k.y1);
+        ctx.lineTo(k.x2, k.y2);
+        ctx.strokeStyle = '#ffb703';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#ffb703';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    });
+}
+
+function drawSpinner() {
+    const [tip1, tip2] = spinnerTips(spinner);
+    ctx.beginPath();
+    ctx.moveTo(tip1.x, tip1.y);
+    ctx.lineTo(tip2.x, tip2.y);
+    ctx.strokeStyle = '#e6e6f0';
+    ctx.lineWidth = spinner.radius * 2;
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#e6e6f0';
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(spinner.pivotX, spinner.pivotY, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#3a3a4a';
+    ctx.fill();
 }
 
 function drawBumpers(now) {
@@ -468,8 +562,10 @@ function render(now) {
     drawBackgroundEmblem();
     drawWalls(now);
     drawDomeLights(now);
+    drawKickers();
     drawPegs();
     drawBumpers(now);
+    drawSpinner();
     drawPaddles();
     drawTethers();
     drawChargeMeter();
