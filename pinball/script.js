@@ -81,10 +81,10 @@ function buildPegs() {
 }
 
 function buildKickers() {
-    // piccoli respingenti ad alto rimbalzo, negli angoli, lontani dagli altri ostacoli
+    // piccoli respingenti ad alto rimbalzo, negli angoli, lontani dagli altri ostacoli e dalla traiettoria di lancio
     return [
         { x1: 85, y1: 195, x2: 120, y2: 245, restitution: 1.35 },
-        { x1: 870, y1: 545, x2: 905, y2: 505, restitution: 1.35 }
+        { x1: 760, y1: 545, x2: 795, y2: 505, restitution: 1.35 }
     ];
 }
 
@@ -324,8 +324,8 @@ document.addEventListener('keyup', e => {
 });
 
 function launchBall() {
-    // lancio verticale dalla molla, potenziato dal moltiplicatore TIRO_PALLINA (solo qui, solo ora)
-    ball.vx = -2 * TIRO_PALLINA;
+    // lancio perfettamente verticale (perpendicolare al pavimento), potenziato da TIRO_PALLINA
+    ball.vx = 0;
     ball.vy = (-13 - charge * 3) * TIRO_PALLINA;
     gameState = 'in-play';
     charge = 0;
