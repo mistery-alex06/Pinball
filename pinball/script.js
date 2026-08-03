@@ -52,42 +52,45 @@ function buildWalls() {
 }
 
 function buildBumpers() {
-    // paraurti tondi, non tutti uguali: 3 principali coordinati + 2 piccoli fuori schema
+    // paraurti tondi, ben distanziati tra loro
     return [
-        { x: 486, y: 260, r: 22, color: '#00f5d4', lastHit: -9999 },
-        { x: 320, y: 350, r: 20, color: '#ff2f7e', lastHit: -9999 },
-        { x: 652, y: 350, r: 20, color: '#00ff6a', lastHit: -9999 },
-        { x: 190, y: 470, r: 13, color: '#ffb703', lastHit: -9999 },
-        { x: 790, y: 440, r: 15, color: '#a855f7', lastHit: -9999 }
+        { x: 486, y: 220, r: 22, color: '#00f5d4', lastHit: -9999 },
+        { x: 230, y: 300, r: 20, color: '#ff2f7e', lastHit: -9999 },
+        { x: 742, y: 300, r: 20, color: '#00ff6a', lastHit: -9999 },
+        { x: 140, y: 480, r: 13, color: '#ffb703', lastHit: -9999 },
+        { x: 832, y: 480, r: 15, color: '#a855f7', lastHit: -9999 },
+        { x: 300, y: 180, r: 14, color: '#38bdf8', lastHit: -9999 },
+        { x: 672, y: 180, r: 14, color: '#f472b6', lastHit: -9999 }
     ];
 }
 
 function buildPegs() {
-    // intoppi sparsi, volutamente scoordinati e di dimensioni diverse
+    // intoppi sparsi, ben distanziati, dimensioni e colori diversi
     return [
-        { x: 486, y: 400, r: 5, color: '#5a6a8f' },
-        { x: 410, y: 445, r: 5, color: '#5a6a8f' },
-        { x: 562, y: 445, r: 5, color: '#5a6a8f' },
-        { x: 486, y: 490, r: 5, color: '#5a6a8f' },
-        { x: 486, y: 330, r: 4, color: '#5a6a8f' },
-        { x: 140, y: 400, r: 4, color: '#6b5aa0' },
-        { x: 850, y: 300, r: 6, color: '#a05a6b' },
-        { x: 240, y: 550, r: 4, color: '#5a6a8f' },
-        { x: 640, y: 500, r: 5, color: '#6b5aa0' }
+        { x: 486, y: 360, r: 5, color: '#5a6a8f' },
+        { x: 320, y: 430, r: 5, color: '#5a6a8f' },
+        { x: 660, y: 430, r: 5, color: '#5a6a8f' },
+        { x: 486, y: 540, r: 4, color: '#5a6a8f' },
+        { x: 190, y: 400, r: 4, color: '#6b5aa0' },
+        { x: 790, y: 400, r: 6, color: '#a05a6b' },
+        { x: 300, y: 570, r: 4, color: '#5a6a8f' },
+        { x: 680, y: 570, r: 5, color: '#6b5aa0' },
+        { x: 200, y: 140, r: 4, color: '#38bdf8' },
+        { x: 772, y: 140, r: 4, color: '#f472b6' }
     ];
 }
 
 function buildKickers() {
-    // piccoli respingenti ad alto rimbalzo, posizionati in modo asimmetrico
+    // piccoli respingenti ad alto rimbalzo, negli angoli, lontani dagli altri ostacoli
     return [
-        { x1: 130, y1: 250, x2: 165, y2: 300, restitution: 1.35 },
-        { x1: 840, y1: 470, x2: 875, y2: 420, restitution: 1.35 }
+        { x1: 85, y1: 195, x2: 120, y2: 245, restitution: 1.35 },
+        { x1: 870, y1: 545, x2: 905, y2: 505, restitution: 1.35 }
     ];
 }
 
 function buildSpinner() {
     // mulinello che gira in continuazione, non controllato dal giocatore
-    return { pivotX: 700, pivotY: 220, armLength: 42, radius: 4, angle: 0, spinSpeed: 0.09 };
+    return { pivotX: 560, pivotY: 500, armLength: 38, radius: 4, angle: 0, spinSpeed: 0.09 };
 }
 
 function buildDomeLights() {
@@ -146,7 +149,17 @@ function resolveWallCollision(ball, wall, now) {
             ball.vx -= (1 + rest) * vDotN * nx;
             ball.vy -= (1 + rest) * vDotN * ny;
         }
-        if (wall.mat) wall.lastHit = now;
+        if (wall.mat) {
+            wall.lastHit = now;
+            // garantisce sempre un rimbalzo minimo visibile: la pallina non deve mai "incollarsi"
+            const MIN_BOUNCE = 5;
+            const outSpeed = ball.vx * nx + ball.vy * ny;
+            if (outSpeed < MIN_BOUNCE) {
+                const boost = MIN_BOUNCE - outSpeed;
+                ball.vx += nx * boost;
+                ball.vy += ny * boost;
+            }
+        }
         return true;
     }
     return false;
@@ -187,6 +200,14 @@ function resolvePaddleCollision(ball, p) {
         ball.x = cp.x + nx * minDist; ball.y = cp.y + ny * minDist;
         const vDotN = ball.vx * nx + ball.vy * ny;
         if (vDotN < 0) { ball.vx -= 1.7 * vDotN * nx; ball.vy -= 1.7 * vDotN * ny; }
+        // garantisce sempre un rimbalzo minimo: la pallina non deve mai fermarsi sopra un paddle
+        const MIN_BOUNCE = 5;
+        const outSpeed = ball.vx * nx + ball.vy * ny;
+        if (outSpeed < MIN_BOUNCE) {
+            const boost = MIN_BOUNCE - outSpeed;
+            ball.vx += nx * boost;
+            ball.vy += ny * boost;
+        }
         return true;
     }
     return false;
